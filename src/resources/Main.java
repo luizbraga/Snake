@@ -4,20 +4,22 @@ import java.applet.Applet;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class Main extends Applet implements KeyListener, Runnable{
 	
 	// Directions queue
 	private LinkedList<Directions> direction = new LinkedList<Directions>();
-	private int MAX_DIRECTIONS = 3;
+
+	private ArrayList<PiecePosition> location = new ArrayList<PiecePosition>();
 	
-	
+	//private int MAX_DIRECTIONS = 3;
+	int index = 0;
 	
 	//Snake line = new Snake(50, 100, 150, 100); Horizontal
 	Snake snake = new Snake();
 	Thread t;
-	SnakePiece head;
 	
 	// Keys
 	public static final int _UP = KeyEvent.VK_UP;
@@ -27,11 +29,10 @@ public class Main extends Applet implements KeyListener, Runnable{
 	
 	public void init(){
 		setLayout(null);
-		requestFocus();
 		
-		head = snake.getSnake().peekFirst();
-		
+		direction.addLast(Directions.RIGHT);
 		addKeyListener(this);
+		setFocusable(true);
 		t = new Thread(this);
 		t.start();
 	}
@@ -41,7 +42,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 			inGameLoop();
 			repaint();
 			try {
-				Thread.sleep(15);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -57,48 +58,32 @@ public class Main extends Applet implements KeyListener, Runnable{
 	public void paint(Graphics g){
 		snake.draw(g);
 	}
-	
-	
-	
 
 	public void keyPressed(int key) {
+		Directions last = direction.peekLast();
 		switch(key){
 		case _UP:
-			if (direction.size() < MAX_DIRECTIONS){
-				Directions last = head.directions.peekLast();
-				if(last != Directions.UP && last != Directions.DOWN){
-					direction.addLast(Directions.UP);
-				}	
-			}
-
+			
+			if(last != Directions.UP && last != Directions.DOWN){
+				direction.addLast(Directions.UP);
+			}	
 			break;
 		case _DN:
-			if (direction.size() < MAX_DIRECTIONS){
-				Directions last = direction.peekLast();
-				if(last != Directions.UP && last != Directions.DOWN){
-					direction.addLast(Directions.DOWN);
-				}	
-			}
-			
-
+		
+			if(last != Directions.UP && last != Directions.DOWN){
+				direction.addLast(Directions.DOWN);
+			}	
 			break;
 		case _LF:
-			if (direction.size() < MAX_DIRECTIONS){
-				Directions last = direction.peekLast();
-				if(last != Directions.LEFT && last != Directions.RIGHT){
-					direction.addLast(Directions.LEFT);
-				}	
-			}
 			
+			if(last != Directions.LEFT && last != Directions.RIGHT){
+				direction.addLast(Directions.LEFT);
+			}	
 			break;
 		case _RG:
-			if (direction.size() < MAX_DIRECTIONS){
-				Directions last = direction.peekLast();
-				if(last != Directions.LEFT && last != Directions.RIGHT){
-					direction.addLast(Directions.RIGHT);
-				}	
-			}
-			
+			if(last != Directions.LEFT && last != Directions.RIGHT){
+				direction.addLast(Directions.RIGHT);
+			}	
 			break;
 		}
 
@@ -109,24 +94,43 @@ public class Main extends Applet implements KeyListener, Runnable{
 	}
 
 	@Override
-	public void keyReleased(KeyEvent e) {
-		
-
-	}
-
+	public void keyReleased(KeyEvent e) {}
 	@Override
-	public void keyTyped(KeyEvent e) {
-		
-	}
+	public void keyTyped(KeyEvent e) {}
 	
 	private void updateGame() {
 		
 	}
 	
 	private void updateSnake() {
-		Directions dir = direction.peekFirst();
 		
-		snake.getSnake();
+		SnakePiece newhead = new SnakePiece(snake.getSnake().peekFirst());
+		SnakePiece oldhead = snake.getSnake().peekFirst();
+		
+		newhead.direction = direction.peekFirst();
+		newhead.moveByDirection();
+		
+		if(location.size() < snake.getSnake().size()-1){
+			location.add(index, new PiecePosition(oldhead.x, oldhead.y));
+		}else{
+			location.set(index, new PiecePosition(oldhead.x, oldhead.y));
+		}
+		
+		for(int i=0;i<location.size();i++){
+			snake.getSnake().get(i+1).setLocation(location.get(i).x,location.get(i).y);
+		}
+		snake.getSnake().set(0,newhead);
+		
+		
+		if(index == snake.getSnake().size()-2){
+			index = 0;
+		}else{
+			index++;
+		}
+		
+		if(direction.size() > 1){
+			direction.poll();
+		}
 		
 	}
 	
