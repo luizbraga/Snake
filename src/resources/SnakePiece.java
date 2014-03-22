@@ -2,6 +2,8 @@ package resources;
 
 import java.awt.Graphics;
 
+import utils.Directions;
+
 public class SnakePiece {
 	
 	int x;
@@ -9,6 +11,10 @@ public class SnakePiece {
 	int w = 20;
 	int h = 20;
 	Directions direction;
+	
+	public SnakePiece(){
+		
+	}
 	
 	public SnakePiece(int x, int y, Directions dir) {
 		this.x = x;
@@ -24,6 +30,7 @@ public class SnakePiece {
 
 	public void draw(Graphics g){
 		g.drawRect(x-w/2, y-h/2, w, h);
+		g.fillRect(x-w/2, y-h/2, w, h);
 	}
 	
 	public void moveByDirection(){
@@ -42,16 +49,16 @@ public class SnakePiece {
 			break;
 		}
 	}
-	public void moveUpBy(int dy){
+	private void moveUpBy(int dy){
 		y-=dy;
 	}
-	public void moveDownBy(int dy){
+	private void moveDownBy(int dy){
 		y+=dy;
 	}
-	public void moveLeftBy(int dx){
+	private void moveLeftBy(int dx){
 		x-=dx;
 	}
-	public void moveRightBy(int dx){
+	private void moveRightBy(int dx){
 		x+=dx;
 	}
 
@@ -60,5 +67,12 @@ public class SnakePiece {
 		this.y = y2;
 	}
 	
+	public boolean hasCollidedWIth(SnakePiece sp){
+		return (x == sp.x && y == sp.y);
+	}
+	
+	public boolean hasCollidedWith(Prey p){
+		return (x == p.x && y == p.y);
+	}
 	
 }
