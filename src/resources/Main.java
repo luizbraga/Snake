@@ -12,7 +12,8 @@ import utils.Directions;
 public class Main extends Applet implements KeyListener, Runnable{
 	
 	/**
-	 * 
+	 * Main class of Classic Snake game
+	 * @author Luiz Braga
 	 */
 	private static final long serialVersionUID = 4940501782671450799L;
 	
@@ -29,7 +30,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 	// Snake creation
 	Snake snake = new Snake();
 	Thread t;
-	Prey prey = new Prey(30,50);
+	Prey prey = new Prey();
 	
 	// Keys
 	public static final int _UP = KeyEvent.VK_UP;
@@ -42,34 +43,39 @@ public class Main extends Applet implements KeyListener, Runnable{
 	
 	// Game status
 	private int score = 0;
+	private int level = 1;
+	private boolean hasWalls = false;
 	private boolean isPaused = false;
 	private boolean isEnded = false;
-	private boolean hasCollidedWithBody = false;
+	private boolean hasCollided = false;
 	
 	public void init(){
 		setLayout(null);
-		
+		setSize(850, 550);
 		direction.addLast(Directions.RIGHT);
 		addKeyListener(this);
 		setFocusable(true);
 		t = new Thread(this);
 		t.start();
+		
+		prey.spawnPrey(snake, hasWalls);
 	}
 	
 	public void run(){
-		while(true){
+		while(!isEnded){
 			inGameLoop();
 			repaint();
 			try {
-				Thread.sleep(60);
+				Thread.sleep(80-(level*10));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
+		
 	}
 
 	private void inGameLoop() {
-		if(!hasCollidedWithBody){
+		if(!hasCollided){
 			if(!isPaused){
 				updateSnake();
 				updateGame();
@@ -82,12 +88,13 @@ public class Main extends Applet implements KeyListener, Runnable{
 		snake.draw(g);
 		g.drawRect(20, 20, SCREEN_WIDTH, SCREEN_HEIGHT);
 		prey.draw(g);
-		g.drawString("Score: "+score, 20, 20);
 		
-/*		g.drawString("Snake: ("+snake.getSnake().peekFirst().x+","+snake.getSnake().peekFirst().y+")", 60, 20);
-		g.drawString("Prey: ("+prey.x+","+prey.y+")", 60, 9);*/
-		
-		if(!hasCollidedWithBody){
+		g.drawString("Score: "+score, 20, 15);
+		g.drawString("Difficult: "+level, 100, 15);
+		if(hasWalls){
+			g.drawRect(40, 40, SCREEN_WIDTH-40, SCREEN_HEIGHT-40);
+		}
+		if(!hasCollided){
 			if(isPaused){
 				g.drawString("PAUSED", 240, 240);
 			}
@@ -101,7 +108,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 		Directions last = direction.peekLast();
 		switch(key){
 		case _UP:
-			if(!hasCollidedWithBody){
+			if(!hasCollided){
 				if(!isPaused){
 					if(last != Directions.UP && last != Directions.DOWN){
 						direction.addLast(Directions.UP);
@@ -110,7 +117,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 			}
 			break;
 		case _DN:
-			if(!hasCollidedWithBody){
+			if(!hasCollided){
 				if(!isPaused){
 					if(last != Directions.UP && last != Directions.DOWN){
 						direction.addLast(Directions.DOWN);
@@ -119,7 +126,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 			}
 			break;
 		case _LF:
-			if(!hasCollidedWithBody){
+			if(!hasCollided){
 				if(!isPaused){
 					if(last != Directions.LEFT && last != Directions.RIGHT){
 						direction.addLast(Directions.LEFT);
@@ -128,7 +135,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 			}
 			break;
 		case _RG:
-			if(!hasCollidedWithBody){
+			if(!hasCollided){
 				if(!isPaused){
 					if(last != Directions.LEFT && last != Directions.RIGHT){
 						direction.addLast(Directions.RIGHT);
@@ -137,7 +144,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 			}
 			break;
 		case _P:
-			if(!hasCollidedWithBody){
+			if(!hasCollided){
 				if(isPaused){
 					isPaused = false;
 				}else{
@@ -146,15 +153,18 @@ public class Main extends Applet implements KeyListener, Runnable{
 			}
 			break;
 		case _ENTER:
-			if(hasCollidedWithBody){
-				hasCollidedWithBody = false;
-				snake = new Snake();
-				direction = new LinkedList<Directions>();
-				direction.addLast(Directions.RIGHT);
+			if(hasCollided){
+				resetGame();
 			}break;
+		case _Q:
+			isEnded = true;
+			break;
 		}
+		
 
 	}
+
+
 	@Override
 	public void keyPressed(KeyEvent e){
 		keyPressed(e.getKeyCode());
@@ -172,16 +182,27 @@ public class Main extends Applet implements KeyListener, Runnable{
 		for(int i=1;i<snake.getSnake().size(); i++){
 			SnakePiece bodyPiece = snake.getSnake().get(i);
 			if(head.hasCollidedWIth(bodyPiece)){
-				hasCollidedWithBody = true;
+				hasCollided = true;
 			}
 		}
 		
+		// Detection when the Snake eats the prey
 		if(head.hasCollidedWith(prey)){
 			SnakePiece lastPiece = snake.getSnake().peekLast();
 			snake.getSnake().add(new SnakePiece(lastPiece.x,lastPiece.y, lastPiece.direction));
 			score += 10;
-			prey.spawnPrey(snake);
+			prey.spawnPrey(snake, hasWalls);
 		}
+		
+		// Increase difficult and level
+		if(score/50 == level){
+			if(level <= 3){
+				level++;
+			}
+			
+		}
+		
+		
 		
 	}
 	
@@ -193,17 +214,12 @@ public class Main extends Applet implements KeyListener, Runnable{
 		newhead.direction = direction.peekFirst();
 		newhead.moveByDirection();
 		
-		// 10 is the difference between (x,y) with (width,height)
-		if(newhead.x <= BLOCK_SIZE-10){
-			newhead.x = SCREEN_WIDTH+10;
-		}else if(newhead.y <= BLOCK_SIZE-10){
-			newhead.y = SCREEN_HEIGHT+10;
-		}else if(newhead.x > SCREEN_WIDTH+10){
-			newhead.x = BLOCK_SIZE+10;
-		}else if(newhead.y > SCREEN_HEIGHT+10){
-			newhead.y = BLOCK_SIZE+10;
+		if(level > 3){
+			hasCollidedWithWall(newhead);
+			hasWalls = true;
+		}else{
+			appearOnOtherSide(newhead);
 		}
-		
 		
 		if(location.size() < snake.getSnake().size()-1){
 			location.add(index, new PiecePosition(oldhead.x, oldhead.y));
@@ -226,6 +242,51 @@ public class Main extends Applet implements KeyListener, Runnable{
 		if(direction.size() > 1){
 			direction.poll();
 		}
+		
+	}
+	
+	private void hasCollidedWithWall(SnakePiece head) {
+		if(head.x <= BLOCK_SIZE+20){
+			hasCollided = true;
+			head.x = BLOCK_SIZE+30;
+		}else if(head.y <= BLOCK_SIZE+20){
+			hasCollided = true;
+			head.y = BLOCK_SIZE+30;
+		}else if(head.x > SCREEN_WIDTH-20){
+			hasCollided = true;
+			head.x = SCREEN_WIDTH-20;
+		}else if(head.y > SCREEN_HEIGHT-20){
+			hasCollided = true;
+			head.y = SCREEN_HEIGHT-20;
+		}
+	}
+
+	private void appearOnOtherSide(SnakePiece newhead) {
+		// 10 is the difference between (x,y) with (width,height)
+		if(newhead.x <= BLOCK_SIZE-10){
+			newhead.x = SCREEN_WIDTH+10;
+		}else if(newhead.y <= BLOCK_SIZE-10){
+			newhead.y = SCREEN_HEIGHT+10;
+		}else if(newhead.x > SCREEN_WIDTH+10){
+			newhead.x = BLOCK_SIZE+10;
+		}else if(newhead.y > SCREEN_HEIGHT+10){
+			newhead.y = BLOCK_SIZE+10;
+		}
+	}
+
+	private void resetGame() {
+		hasCollided = false;
+		
+		snake = new Snake();
+		
+		score = 0;
+		index = 0;
+		level = 1;
+		hasWalls = false;
+		
+		location = new ArrayList<PiecePosition>();
+		direction = new LinkedList<Directions>();
+		direction.addLast(Directions.RIGHT);
 		
 	}
 	
