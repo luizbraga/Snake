@@ -1,3 +1,5 @@
+
+
 package resources;
 
 import java.applet.Applet;
@@ -43,7 +45,8 @@ public class Main extends Applet implements KeyListener, Runnable{
 	
 	// Game status
 	private int score = 0;
-	private int level = 1;
+	private int highScore = 0;
+	private int level = 0;
 	private boolean hasWalls = false;
 	private boolean isPaused = false;
 	private boolean isEnded = false;
@@ -66,7 +69,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 			inGameLoop();
 			repaint();
 			try {
-				Thread.sleep(80-(level*10));
+				Thread.sleep(70);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -91,6 +94,8 @@ public class Main extends Applet implements KeyListener, Runnable{
 		
 		g.drawString("Score: "+score, 20, 15);
 		g.drawString("Difficult: "+level, 100, 15);
+		g.drawString("High Score: "+highScore, 180, 15);
+		
 		if(hasWalls){
 			g.drawRect(40, 40, SCREEN_WIDTH-40, SCREEN_HEIGHT-40);
 		}
@@ -195,7 +200,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 		}
 		
 		// Increase difficult and level
-		if(score/50 == level){
+		if(score/20 == level){
 			if(level <= 3){
 				level++;
 			}
@@ -206,6 +211,12 @@ public class Main extends Applet implements KeyListener, Runnable{
 		
 	}
 	
+	private void checkHighScore() {
+		if(score > highScore){
+			highScore = score;
+		}
+	}
+
 	private void updateSnake() {
 		
 		SnakePiece newhead = new SnakePiece(snake.getSnake().peekFirst());
@@ -214,7 +225,7 @@ public class Main extends Applet implements KeyListener, Runnable{
 		newhead.direction = direction.peekFirst();
 		newhead.moveByDirection();
 		
-		if(level > 3){
+		if(level > 2){
 			hasCollidedWithWall(newhead);
 			hasWalls = true;
 		}else{
@@ -246,16 +257,16 @@ public class Main extends Applet implements KeyListener, Runnable{
 	}
 	
 	private void hasCollidedWithWall(SnakePiece head) {
-		if(head.x <= BLOCK_SIZE+20){
+		if(head.x <= BLOCK_SIZE+10){
 			hasCollided = true;
 			head.x = BLOCK_SIZE+30;
-		}else if(head.y <= BLOCK_SIZE+20){
+		}else if(head.y <= BLOCK_SIZE+10){
 			hasCollided = true;
 			head.y = BLOCK_SIZE+30;
-		}else if(head.x > SCREEN_WIDTH-20){
+		}else if(head.x > SCREEN_WIDTH-10){
 			hasCollided = true;
 			head.x = SCREEN_WIDTH-20;
-		}else if(head.y > SCREEN_HEIGHT-20){
+		}else if(head.y > SCREEN_HEIGHT-10){
 			hasCollided = true;
 			head.y = SCREEN_HEIGHT-20;
 		}
@@ -278,11 +289,15 @@ public class Main extends Applet implements KeyListener, Runnable{
 		hasCollided = false;
 		
 		snake = new Snake();
+		checkHighScore();
 		
 		score = 0;
 		index = 0;
 		level = 1;
 		hasWalls = false;
+		
+		prey = new Prey();
+		prey.spawnPrey(snake, hasWalls);
 		
 		location = new ArrayList<PiecePosition>();
 		direction = new LinkedList<Directions>();
